@@ -1,26 +1,27 @@
-import { ActionPanel, CopyToClipboardAction, Icon , List, OpenInBrowserAction, showToast, ToastStyle } from "@raycast/api";
+import { ActionPanel, CopyToClipboardAction, Icon, List, OpenInBrowserAction, showToast, ToastStyle } from "@raycast/api";
 import { useState, useEffect } from "react";
 import $ from "cheerio";
 import fetch from "node-fetch";
 
 export default function ArticleList() {
   const [currencyPrice, setCurrencyPrice] = useState('');
+  const [isLoading, setIsLoading] = useState(false)
+ 
 
-  useEffect(() => {
-  }, []);
 
-
-  const onSearch = async (search: string) => {
-    console.log('search :', search);
-    const price  = await fetchPrice(search);
-      
-      console.log('price :', price);
-      setCurrencyPrice(price)
+  const onSearch = (search: string) => {
     
+
+    setIsLoading(true)
+
+    fetchPrice(search).then(price => {
+      setCurrencyPrice(price);
+      setIsLoading(false)
+    });
 
   }
   return (
-    <List isLoading={!currencyPrice}
+    <List isLoading={isLoading}
       throttle
       searchBarPlaceholder="enter the crypto name ... "
       onSearchTextChange={onSearch}>
@@ -28,15 +29,8 @@ export default function ArticleList() {
 
       <List.Item
         title={currencyPrice}
-        subtitle="Raycast Blog"
+        // subtitle="Raycast Blog"
         icon={Icon.Star}
-        // accessoryTitle={new Date(article.date_modified).toLocaleDateString()}
-        // actions={
-        //   <ActionPanel>
-        //     {/* <OpenInBrowserAction url={article.url} /> */}
-        //     {/* <CopyToClipboardAction title="Copy URL" content={article.url} /> */}
-        //   </ActionPanel>
-        // }
       />
 
     </List>
@@ -46,20 +40,19 @@ export default function ArticleList() {
 
 
 async function fetchPrice(coinName: string) {
-console.log('coinName :', coinName);
+  console.log('coinName :', coinName);
 
-  
-  // fetch(`https://coinmarketcap.com/currencies/${coinName}/`)
-  // .then((r) => r.text())
-  // .then((html) => {
-  //   const $html = $.load(html);
-    
-  //   const priceResult = $html(".priceValue")
-  //   console.log('priceResult :', priceResult);
-  //   if(!priceResult) return 0;
-  //   return priceResult
-    
-  // });
-  return 'mujings'
+
+  return fetch(`https://coinmarketcap.com/currencies/${coinName}/`)
+    .then((r) => r.text())
+    .then((html) => {
+      const $html = $.load(html);
+
+      const priceResult = $html(".priceValue").text()
+      console.log('priceResult :', priceResult);
+      if (!priceResult) return '';
+      return priceResult
+
+    });
+
 }
- 
