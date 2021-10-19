@@ -1,23 +1,27 @@
-import { ActionPanel, CopyToClipboardAction, Icon, List, OpenInBrowserAction, showToast, ToastStyle } from "@raycast/api";
+import { ActionPanel, CopyToClipboardAction, PasteAction, Icon, List, OpenInBrowserAction } from "@raycast/api";
 import { useState, useEffect } from "react";
 import $ from "cheerio";
 import fetch from "node-fetch";
 
+const BASE_URL =  'https://coinmarketcap.com/currencies/'
 export default function ArticleList() {
+  const [coinName, setCoinName] = useState('')
   const [currencyPrice, setCurrencyPrice] = useState('');
-  const [priceDiff,setPriceDiff] = useState('');
+  const [priceDiff, setPriceDiff] = useState('');
+  const [notFound, setNotFound] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
 
 
 
   const onSearch = (search: string) => {
-
-
     setIsLoading(true)
+    setNotFound(false)
 
-    fetchPrice(search).then(({ priceValueText, priceDiffText }) => {
+    fetchPrice(search).then(({ priceValueText = '', priceDiffText = '',coinName='' }) => {
       setCurrencyPrice(priceValueText);
       setPriceDiff(priceDiffText);
+      setCoinName(coinName);
+      if (!priceValueText) setNotFound(true)
       setIsLoading(false)
     });
 
@@ -30,9 +34,15 @@ export default function ArticleList() {
 
 
       <List.Item
-        title={currencyPrice}
+        title={notFound ? 'Crypto Not Found.' : currencyPrice}
         subtitle={priceDiff}
         icon={Icon.Star}
+        actions={
+          <ActionPanel> 
+                       <OpenInBrowserAction url={`${BASE_URL}${coinName}`} />  
+          </ActionPanel>
+        }
+
       />
 
     </List>
@@ -42,10 +52,7 @@ export default function ArticleList() {
 
 
 async function fetchPrice(coinName: string) {
-  console.log('coinName :', coinName);
-
-
-  return fetch(`https://coinmarketcap.com/currencies/${coinName}/`)
+  return fetch(`${BASE_URL}${coinName}/`)
     .then((r) => r.text())
     .then((html) => {
       const $html = $.load(html);
@@ -56,20 +63,12 @@ async function fetchPrice(coinName: string) {
       const priceDirection = priceDirectionClassName && priceDirectionClassName.split('-').includes('up') ? '+' : '-'
       const priceDiffValue = priceValue.next("span").text()
 
-
       const priceDiffText = `${priceDirection} ${priceDiffValue}`
 
-
-
-      // console.log('priceValueDiff :', priceValueDiff);
-      // > span[class^=icon-Caret]
-      // console.log('priceValueDiff :', priceValueDiff);
-
-      // console.log('priceNext :', $html(".priceValue").next().find("class=[icon-Caret-]") );
-
       const priceValueText = priceValue.text()
-      if (!priceValueText) return '';
-      return { priceValueText, priceDiffText }
+      if (!priceValueText) return undefined;
+
+      return { priceValueText, priceDiffText, coinName }
     });
 
 }
