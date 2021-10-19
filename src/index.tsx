@@ -5,17 +5,19 @@ import fetch from "node-fetch";
 
 export default function ArticleList() {
   const [currencyPrice, setCurrencyPrice] = useState('');
+  const [priceDiff,setPriceDiff] = useState('');
   const [isLoading, setIsLoading] = useState(false)
- 
+
 
 
   const onSearch = (search: string) => {
-    
+
 
     setIsLoading(true)
 
-    fetchPrice(search).then(price => {
-      setCurrencyPrice(price);
+    fetchPrice(search).then(({ priceValueText, priceDiffText }) => {
+      setCurrencyPrice(priceValueText);
+      setPriceDiff(priceDiffText);
       setIsLoading(false)
     });
 
@@ -29,7 +31,7 @@ export default function ArticleList() {
 
       <List.Item
         title={currencyPrice}
-        // subtitle="Raycast Blog"
+        subtitle={priceDiff}
         icon={Icon.Star}
       />
 
@@ -48,11 +50,26 @@ async function fetchPrice(coinName: string) {
     .then((html) => {
       const $html = $.load(html);
 
-      const priceResult = $html(".priceValue").text()
-      console.log('priceResult :', priceResult);
-      if (!priceResult) return '';
-      return priceResult
+      const priceValue = $html(".priceValue")
 
+      const priceDirectionClassName = $html(".priceValue + span > span[class^=icon-Caret]").attr('class');
+      const priceDirection = priceDirectionClassName && priceDirectionClassName.split('-').includes('up') ? '+' : '-'
+      const priceDiffValue = priceValue.next("span").text()
+
+
+      const priceDiffText = `${priceDirection} ${priceDiffValue}`
+
+
+
+      // console.log('priceValueDiff :', priceValueDiff);
+      // > span[class^=icon-Caret]
+      // console.log('priceValueDiff :', priceValueDiff);
+
+      // console.log('priceNext :', $html(".priceValue").next().find("class=[icon-Caret-]") );
+
+      const priceValueText = priceValue.text()
+      if (!priceValueText) return '';
+      return { priceValueText, priceDiffText }
     });
 
 }
